@@ -39,15 +39,15 @@ def executeOCO(stopLossPercent:float, takeProfitPercent:float,slStopPrice:float,
         ocoOperation["aboveType"] = "LIMIT_MAKER"
         ocoOperation["belowType"] = "STOP_LOSS_LIMIT"
         ocoOperation["quantity"] = marketOrder["amount"]
-        ocoOperation["abovePrice"] = marketOrder["price"]*takeProfitPercent
-        ocoOperation["belowPrice"] = marketOrder["price"]*stopLossPercent
+        ocoOperation["abovePrice"] += marketOrder["price"]*takeProfitPercent
+        ocoOperation["belowPrice"] -= marketOrder["price"]*stopLossPercent
     elif marketOrder["side"] == "SELL":
         ocoOperation["side"] = "BUY"
         ocoOperation["aboveType"] = "STOP_LOSS_LIMIT"
         ocoOperation["belowType"] = "LIMIT_MAKER"
         ocoOperation["quoteOrderQty"] = marketOrder["amount"]
-        ocoOperation["abovePrice"] = marketOrder["price"]*stopLossPercent
-        ocoOperation["belowPrice"] = marketOrder["price"]*takeProfitPercent
+        ocoOperation["abovePrice"] += marketOrder["price"]*stopLossPercent
+        ocoOperation["belowPrice"] -= marketOrder["price"]*takeProfitPercent
     logging.info(f"Operacion OCO: {ocoOperation} \n")
     # Ejecutando la operación y obteniendo la orden
     ocoOrder = client.new_oco_order(**ocoOperation)
