@@ -5,7 +5,10 @@ from utils import logg_format
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-
+#import coinmarketcap as cmc
+import wbdata
+import datetime
+alphavantage_api = "VXX7JZAQDBD4GG0N"
 logg_format()
 def binance():
         logging.info("Obteniendo datos de Binance")  # Imprime mensaje indicando que se están obteniendo datos
@@ -41,16 +44,18 @@ def order_book(exchange):
         logging.info(f"Error al obtener el order book: {e}")
 
 class EconomicCalendar:
+    def fecha_actual():
+        return pd.Timestamp.now().strftime('%Y-%m-%d')
     def extraer_eventos_con_8_columnas(html_fragment):
         soup = BeautifulSoup(f"<table>{html_fragment}</table>", "html.parser")
-        filas = soup.find_all("tr")
+        rows = soup.find_all("tr")
 
         eventos_validos = []
 
-        for fila in filas:
-            columnas = fila.find_all("td")
+        for row in rows:
+            columnas = row.find_all("td")
 
-            # Solo filas con exactamente 8 columnas
+            # Solo rows con exactamente 8 columnas
             if len(columnas) != 8:
                 continue
 
@@ -72,7 +77,7 @@ class EconomicCalendar:
                 })
 
             except Exception as e:
-                logging.info(f"Error al procesar la fila: {e}")
+                logging.info(f"Error al procesar la row: {e}")
                 continue
         logging.info("Se han obtenido los eventos con 8 columnas")
         return pd.DataFrame(eventos_validos)
@@ -87,7 +92,7 @@ class EconomicCalendar:
             "X-Requested-With": "XMLHttpRequest",
             "Referer": "https://es.investing.com/economic-calendar/"
         }
-
+        fecha = EconomicCalendar.fecha_actual()
         # Payload con todos los países, categorías e importancia alta (3 toros)
         payload = {
             "country[]": ["95","17","86","52","29","25","54","114","145","47","34","8","174","163","32","70","6","27","37","107",
@@ -98,8 +103,8 @@ class EconomicCalendar:
                         "61","123","180","168","138","178","84","75"],
             "category[]": ["_employment","_economicActivity","_inflation","_credit","_centralBanks","_confidenceIndex"],
             "importance[]": ["1","2","3"],
-            "dateFrom": "2025-06-17",
-            "dateTo": "2025-06-17",
+            "dateFrom": f"{fecha}",
+            "dateTo": f"{fecha}",
             "timeZone": "58",
             "timeFilter": "timeRemain",
             "limit": "0,200",
@@ -122,3 +127,43 @@ class EconomicCalendar:
         table.to_json("data_bases/economic_calendar.json")
         logging.info(f"Se han guardado los datos en el archivo economic_calendar.json, correctamente")
 
+def economic_indexs (country="USA",date=2010, indicators={"SL.EMP.TOTL.SP.ZS": "Tasa de empleo (%)","NY.GDP.MKTP.CD": "PBI total (USD)","FP.CPI.TOTL.ZG": "Inflación anual (%)","FR.INR.LEND": "Tasa de interés (%)","GC.DOD.TOTL.GD.ZS": "Deuda del gobierno (% PBI)"}):
+    date = datetime.datetime(int(date), 1, 1)
+    # Obtener datos
+    indicators = wbdata.get_dataframe(indicators=indicators, country=country, data_date=(date, datetime.datetime.today()))
+    indicators.to_json("data_bases/economic_indexs.json")
+    logging.info(f"Se han guardado los datos en el archivo economic_indexs.json, correctamente")
+def marketcap():
+    pass
+def news(topics=list):
+    info = []
+    for topic in topics:
+        url = f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topic={topic}&sort=earliest&apikey={alphavantage_api}' 
+        # Parametros opcionales: sort=EARLIEST, RELEVANCE, LATEST. tickers=IBM,MSFT. time_from & time_to = YYYYMMDDTHHMM
+        r = requests.get(url)
+        data = r.json() # Son diccionarios
+        info.append(data)
+    info = pd.DataFrame(info)
+    info.to_json("data_bases/news.json")
+    logging.info(f"Se han guardado los datos en el archivo news.json, correctamente")
+    return info
+def feelings(url="https://api.alternative.me/fng/?limit=0"): # Todavia no funciona
+    r = requests.get(url)
+    r = r["data"]
+    print(r)
+    rows = []
+    for row in r:
+        ts = int(row["timestamp"])
+        print(f"Esto es el timestamp: {ts}")
+        rows.append({
+            "Fecha": datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d"),
+            "Valor": int(row["value"]),
+            "Clasificación": row["value_classification"]
+        })
+    data = pd.DataFrame(rows)
+    data.to_json("data_bases/feelings.json")
+    print(data)
+    logging.info(f"Se han guardado los datos en el archivo feelings.json, correctamente")
+    return data
+
+feelings()
