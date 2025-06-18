@@ -7,7 +7,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 #import coinmarketcap as cmc
 import wbdata
-import datetime
+from datetime import datetime,timezone
 alphavantage_api = "VXX7JZAQDBD4GG0N"
 logg_format()
 def binance():
@@ -25,21 +25,18 @@ def ohlcv(exchange,timeframe, candle_limit=None):  # Función para cargar datos 
         logging.info(f"Datos obtenidos: {len(ohlcv_data)} velas")  # Imprime el número de velas obtenidas
         ohlcv_df = pd.DataFrame(ohlcv_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])  # Convierte los datos a un DataFrame
         ohlcv_df['timestamp'] = pd.to_datetime(ohlcv_df['timestamp'], unit='ms')  # Convierte la columna timestamp a formato datetime
-        ohlcv_df.to_json("data_bases/ohlcv_data.json")
+        ohlcv_df.to_csv("data_bases/ohlcv_data.csv")
         return ohlcv_df
     except Exception as e:
         logging.info(f"Error al obtener datos de Binance: \n {e}")  # Imprime mensaje de error si falla la obtención de datos
-def read_csv_in_chunks(file_name): #Para archivos con muchisimos datos
-    for i, chunk in enumerate(pd.read_csv(file_name, chunksize=1000)):
-        print("chunk#{}".format(i))
-        print(chunk)
+
 
 def order_book(exchange):
     try:
         order_book = exchange.fetch_order_book('BTC/USDT',params = {"paginate": True, "paginationDirection":"backward"}) # fetchOrderBook (symbol, limit = undefined, params = {})
         logging.info(f"Order book: {order_book}")
         order_book_df = pd.DataFrame(order_book, columns=['bids', 'asks','symbol','timestamp','datetime','nonce']) 
-        order_book_df.to_json("data_bases/order_book.json")
+        order_book_df.to_csv("data_bases/order_book.csv")
     except Exception as e:
         logging.info(f"Error al obtener el order book: {e}")
 
@@ -124,18 +121,20 @@ class EconomicCalendar:
         html = response.json()['data']
         logging.info(f"HTML obtenido")
         table = EconomicCalendar.extraer_eventos_con_8_columnas(html)
-        table.to_json("data_bases/economic_calendar.json")
-        logging.info(f"Se han guardado los datos en el archivo economic_calendar.json, correctamente")
+        table.to_csv("data_bases/economic_calendar.csv")
+        logging.info(f"Se han guardado los datos en el archivo economic_calendar.csv, correctamente")
+        return table
 
 def economic_indexs (country="USA",date=2010, indicators={"SL.EMP.TOTL.SP.ZS": "Tasa de empleo (%)","NY.GDP.MKTP.CD": "PBI total (USD)","FP.CPI.TOTL.ZG": "Inflación anual (%)","FR.INR.LEND": "Tasa de interés (%)","GC.DOD.TOTL.GD.ZS": "Deuda del gobierno (% PBI)"}):
     date = datetime.datetime(int(date), 1, 1)
     # Obtener datos
     indicators = wbdata.get_dataframe(indicators=indicators, country=country, data_date=(date, datetime.datetime.today()))
-    indicators.to_json("data_bases/economic_indexs.json")
-    logging.info(f"Se han guardado los datos en el archivo economic_indexs.json, correctamente")
+    indicators.to_csv("data_bases/economic_indexs.csv")
+    logging.info(f"Se han guardado los datos en el archivo economic_indexs.csv, correctamente")
+    return indicators
 def marketcap():
     pass
-def news(topics=list):
+def news(topics=["blokchain","technology","economy_macro"]):
     info = []
     for topic in topics:
         url = f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topic={topic}&sort=earliest&apikey={alphavantage_api}' 
@@ -144,26 +143,33 @@ def news(topics=list):
         data = r.json() # Son diccionarios
         info.append(data)
     info = pd.DataFrame(info)
-    info.to_json("data_bases/news.json")
-    logging.info(f"Se han guardado los datos en el archivo news.json, correctamente")
+    info.to_csv("data_bases/news.csv")
+    logging.info(f"Se han guardado los datos en el archivo news.csv, correctamente")
     return info
 def feelings(url="https://api.alternative.me/fng/?limit=0"): # Todavia no funciona
     r = requests.get(url)
-    r = r["data"]
-    print(r)
+    r = r.json()["data"]
     rows = []
     for row in r:
         ts = int(row["timestamp"])
-        print(f"Esto es el timestamp: {ts}")
+
+        if (row["value_classification"] == "Extreme Fear"):
+            row["value_classification"] = -2
+        elif (row["value_classification"] == "Fear"):
+            row["value_classification"] = -1
+        elif (row["value_classification"] == "Neutral"):
+            row["value_classification"] = 0
+        elif (row["value_classification"] == "Greed"):
+            row["value_classification"] = 1
+        elif (row["value_classification"] == "Extreme Greed"):
+            row["value_classification"] = 2
+
         rows.append({
-            "Fecha": datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d"),
+            "Fecha": datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d"),
             "Valor": int(row["value"]),
-            "Clasificación": row["value_classification"]
+            "Clasificación": int(row["value_classification"])
         })
     data = pd.DataFrame(rows)
-    data.to_json("data_bases/feelings.json")
-    print(data)
-    logging.info(f"Se han guardado los datos en el archivo feelings.json, correctamente")
+    data.to_csv("data_bases/feelings.csv")
+    logging.info(f"Se han guardado los datos en el archivo feelings.csv, correctamente")
     return data
-
-feelings()
