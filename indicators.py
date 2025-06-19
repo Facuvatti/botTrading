@@ -38,22 +38,32 @@ class SignalGenerator:
         calculated_indicators = self.calculate_indicators(self.ohlcv, selected_indicators)
         self.buy_signals, self.sell_signals = self.generate_signals(calculated_indicators)
 
-    def calculate_indicators(self, ohlcv: pd.DataFrame, selected_indicators: list):
+    def calculate_indicators(self, ohlcv: pd.DataFrame, selected_indicators: dict): # selected_indicators es un diccionario con los indicadores y sus parametros, como valor
 
         calculated_indicators = {}  # Diccionario para almacenar los indicadores calculados
+        indicators = selected_indicators.keys()
+        if len(selected_indicators) == 1:
+            calculation = getattr(ohlcv.ta, indicators[0])(selected_indicators[indicators[0]])
+            calculation = calculation.dropna()
+            calculated_indicators = calculation
+        elif selected_indicators != {}:
+            for indicator in indicators:
+                try:
+                    calculation = getattr(ohlcv.ta, indicator)(selected_indicators[indicator])
+                    calculation = calculation.dropna()
+                    for i in selected_indicators[indicator]:
+                        indicator = indicator + f"_{selected_indicators[indicator][i]}"
+                    
+                    calculated_indicators[indicator] = calculation
 
-        for indicator in selected_indicators:
-            try:
-                calculation = getattr(ohlcv.ta, indicator)()
-                calculation = calculation.dropna()
-                calculated_indicators[indicator] = calculation
-                
-                logging.info(f"Calculado indicador: {indicator}")
-            except AttributeError:
-                logging.error(f"Indicador no encontrado: {indicator}")
-            except Exception as e:
-                logging.error(f"Error al calcular el indicador {indicator}: {e}")
-        logging.info(f"Estos son los indicadores calculados")
+                    logging.info(f"Indicador calculado: {indicator}")
+                except AttributeError:
+                    logging.error(f"Indicador no encontrado: {indicator}")
+                except Exception as e:
+                    logging.error(f"Error al calcular el indicador {indicator}: {e}")
+            logging.info(f"Estos son los indicadores calculados")
+        else:
+            logging.info("No se seleccionaron indicadores")
         return calculated_indicators
 
        
