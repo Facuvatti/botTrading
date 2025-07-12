@@ -8,7 +8,6 @@ from bs4 import BeautifulSoup
 #import coinmarketcap as cmc
 import wbdata
 from datetime import datetime,timezone
-
 alphavantage_api = "VXX7JZAQDBD4GG0N"
 logg_format()
 def binance(apikey="zYDWPJzOj0jVT2a1OQdRlxSc6Y8Z60vbpw9lmz1tpU32U5wGnNXCtdHrkxV9gLIw",secret="asJ0B0hqMdI9JEdXqBmz804lN40KNx8dLBcueiKoFos25IBSeQvm3o4i4tLDvbDO"):
@@ -137,15 +136,56 @@ class EconomicCalendar:
         logging.info(f"Se han guardado los datos en el archivo economic_calendar.csv, correctamente")
         return table
 
-def economic_indexs (country="USA",date=2010, indicators={"SL.EMP.TOTL.SP.ZS": "Tasa de empleo (%)","NY.GDP.MKTP.CD": "PBI total (USD)","FP.CPI.TOTL.ZG": "Inflación anual (%)","FR.INR.LEND": "Tasa de interés (%)","GC.DOD.TOTL.GD.ZS": "Deuda del gobierno (% PBI)"}):
-    date = datetime.datetime(int(date), 1, 1)
+def economic_indexs (interval:str="Q",country="USA",date=2010, indicators={"SL.EMP.TOTL.SP.ZS": "Tasa de empleo (%)","NY.GDP.MKTP.CD": "PBI total (USD)","FP.CPI.TOTL.ZG": "Inflación anual (%)","FR.INR.LEND": "Tasa de interés (%)","GC.DOD.TOTL.GD.ZS": "Deuda del gobierno (% PBI)"}):
+    date = datetime(int(date), 1, 1)
     # Obtener datos
-    indicators = wbdata.get_dataframe(indicators=indicators, country=country, data_date=(date, datetime.datetime.today()))
+    indicators = wbdata.get_dataframe(indicators=indicators, country=country, date=(date, datetime.today()), freq=interval, source=2) #interval: Y (year), M (month), Q (quarter (cuatrimestre))
     indicators.to_csv("data_bases/economic_indexs.csv")
     logging.info(f"Se han guardado los datos en el archivo economic_indexs.csv, correctamente")
     return indicators
-def marketcap():
-    pass
+def marketcap(periods: int = max, filename: str = "marketcap.csv",interval : str = "daily") -> pd.DataFrame:
+    """
+    Obtiene datos históricos de capitalización de mercado de BTC desde CoinGecko.
+    :param days: Número de días hacia atrás (ej: 30, 90, 180, 365, 'max')
+    :param filename: Nombre del archivo CSV a guardar
+    :return: DataFrame con columnas timestamp, market_cap_usd, price_usd
+    """
+    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
+    params = {
+        "vs_currency": "usd",
+        "days": periods,
+        "interval": interval
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        market_caps = data["market_caps"]
+        prices = data["prices"]
+
+        # Aseguramos que ambos tengan el mismo largo
+        registros = []
+        for i in range(len(market_caps)):
+            ts_ms = market_caps[i][0]
+            timestamp = datetime.fromtimestamp(ts_ms / 1000)
+            market_cap = market_caps[i][1]
+            price = prices[i][1]
+
+            registros.append({
+                "time": timestamp,
+                "marketcap": market_cap,
+                "price": price
+            })
+
+        df = pd.DataFrame(registros)
+        df.to_csv(filename, index=False)
+        return df
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error al obtener datos de CoinGecko: {e}")
+        return pd.DataFrame()
 def news(topics:list=["blokchain","technology","economy_macro"]):
     info = []
     for topic in topics:
@@ -185,3 +225,4 @@ def feelings(url:str="https://api.alternative.me/fng/?limit=0"): # Todavia no fu
     data.to_csv("data_bases/feelings.csv")
     logging.info(f"Se han guardado los datos en el archivo feelings.csv, correctamente")
     return data
+economic_indexs()
