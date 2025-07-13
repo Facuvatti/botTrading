@@ -1,7 +1,7 @@
 import ccxt
 import logging
 import pandas as pd
-from utils import logg_format
+from utils.others import logg_format
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup

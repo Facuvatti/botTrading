@@ -1,7 +1,7 @@
 import pandas as pd
 import pandas_ta as ta
 import logging
-from utils import logg_format
+from utils.others import logg_format
 import os
 logg_format()
 def boundary_signals(close_price = pd.Series, lower_bound = pd.Series, upper_bound = pd.Series, buy_condition='below', sell_condition='above'):

@@ -1,21 +1,34 @@
 from math import sqrt
-
-
+buyScores = [100, 80, 50, 60, 70, 90, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 10, 20, 30, 40] 
+sellScores = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 90, 80, 70, 60, 50, 40, 30, 20, 10] #Tiene que ser lo contrario de buyScores
+positionSize = 0.00001 
+stopLossPercent = 0.1
+slStopPrice = stopLossPercent-(stopLossPercent*0.1)
+takeProfitPercent = 0.1 
+# Diccionario con todos los valores, encontrar un buen nombre para el diccionario
+riskManagement = {
+    "buyScores": buyScores,
+    "sellScores": sellScores,
+    "positionSize": positionSize,
+    "stopLossPercent": stopLossPercent,
+    "slStopPrice": slStopPrice,
+    "takeProfitPercent": takeProfitPercent
+}
 # Extrayendo solo los ultimos 10 buyScores
-def decide(riskManagement, parameters):
-    buyScores = riskManagement["buyScores"]
-    sellScores = riskManagement["sellScores"]
-    positionSize = riskManagement["positionSize"]
-    stopLossPercent = riskManagement["stopLossPercent"]
-    slStopPrice = riskManagement["slStopPrice"]
-    takeProfitPercent = riskManagement["takeProfitPercent"]
-    periods = parameters["periods"]
-    shortRange = parameters["shortRange"]
-    longRange = parameters["longRange"]
-    acceptable = parameters["acceptable"]
-    excelent = parameters["excelent"]
-    tiny = parameters["tiny"]
-    big = parameters["big"]
+def adjustRisk(parameters):
+    buyScores = riskManagement["buyScores"] # Es una lista
+    sellScores = riskManagement["sellScores"] # Es una lista
+    positionSize = riskManagement["positionSize"] # Es un int
+    stopLossPercent = riskManagement["stopLossPercent"] # Es un float 
+    slStopPrice = riskManagement["slStopPrice"] # Es un float
+    takeProfitPercent = riskManagement["takeProfitPercent"] # Es un float
+    periods = parameters["periods"] # Es un int
+    shortRange = parameters["shortRange"] # Es un float
+    longRange = parameters["longRange"] # Es un float
+    acceptable = parameters["acceptable"] # Es un float
+    excelent = parameters["excelent"] # Es un float
+    tiny = parameters["tiny"] # Es un float
+    big = parameters["big"] # Es un float
     scoreAverage = buyScores[-periods:]/periods
     standartDeviation = sqrt((buyScores[-periods:]-scoreAverage)**2)
     acceptableTreshold = scoreAverage + acceptable*standartDeviation

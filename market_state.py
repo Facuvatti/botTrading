@@ -1,8 +1,8 @@
-from indicators import SignalGenerator
+from utils.indicators import SignalGenerator
 import pandas as pd
 import numpy as np
 import json
-from utils import logg_format
+from utils.others import logg_format
 import logging
 logg_format()
 

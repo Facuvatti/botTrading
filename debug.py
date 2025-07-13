@@ -2,11 +2,10 @@
 import logging
 import os
 import json
-from operate import executeMarket, executeOCO
-from decision import decide
-from scores import riskManagement
-from artificial_inteligence import parameters
-positionSize, stopLossPercent, slStopPrice, takeProfitPercent, side = decide(riskManagement, parameters)
+from utils.operate import executeMarket, executeOCO
+from risk_management import adjustRisk
+from utils.artificial_inteligence import parameters
+positionSize, stopLossPercent, slStopPrice, takeProfitPercent, side = adjustRisk(parameters)
 # Si la tabla de metricas (archivo metrics.json) no existe crearla y agregarle las columnas correspondientes
 while positionSize != None and stopLossPercent != None and slStopPrice != None and takeProfitPercent != None and side != None:
     if not os.path.isfile('metrics.json'):

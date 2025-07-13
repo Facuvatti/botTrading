@@ -1,6 +1,6 @@
 from math import sqrt
 import logging
-from utils import umbral, logg_format
+from utils.others import umbral, logg_format
 logg_format()
 logging.basicConfig(level=logging.DEBUG)
 def calculate_correlation_coefficient(x=[], y=[], y_average=[]): # y = btc
