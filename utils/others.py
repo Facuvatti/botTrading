@@ -2,6 +2,8 @@ import logging
 import colorlog
 import inspect
 import pandas as pd
+import random
+from utils.artificial_inteligence import aiDecides #para debug
 def umbral (x, margin):
     distance = x*margin
     up = x + distance
@@ -40,3 +42,5 @@ def read_csv_in_chunks(file_name): #Para archivos con muchisimos datos
     for i, chunk in enumerate(pd.read_csv(file_name, chunksize=1000)):
         print("chunk#{}".format(i))
         print(chunk)
+def aleatory_list(size, min, max, isFloat=False): # Para debug
+    return [aiDecides(min,max,isFloat) for _ in range(size)]

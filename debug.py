@@ -2,13 +2,15 @@
 import logging
 import os
 import json
-from utils.operate import executeMarket, executeOCO
+from utils.operate import execute
 from risk_management import adjustRisk
-from utils.artificial_inteligence import parameters
-positionSize, stopLossPercent, slStopPrice, takeProfitPercent, side = adjustRisk(parameters)
-# Si la tabla de metricas (archivo metrics.json) no existe crearla y agregarle las columnas correspondientes
-while positionSize != None and stopLossPercent != None and slStopPrice != None and takeProfitPercent != None and side != None:
+from strategy import weather
+from utils.artificial_inteligence import aiDecides
+positionSize, stopLossPercent, takeProfitPercent = adjustRisk(weather.volatility,10)
+
+while positionSize != None and slStopPrice != None and takeProfitPercent != None and side != None:
     if not os.path.isfile('metrics.json'):
+        # Si la tabla de metricas (archivo metrics.json) no existe crearla y agregarle las columnas correspondientes
         metrics = {
         "countTakeProfit": 0,
         "countStopLoss": 0,
@@ -25,8 +27,8 @@ while positionSize != None and stopLossPercent != None and slStopPrice != None a
             json.dump(metrics, f, indent=4) 
     with open('metrics.json', 'r') as f:
         metrics = json.load(f)
-    marketOrder = executeMarket(side, positionSize)
-    orderTP, orderSL = executeOCO(stopLossPercent, takeProfitPercent, slStopPrice, marketOrder)
+    orderTP, orderSL, marketOrder = execute.long(positionSize,takeProfitPercent,slStopPrice,stopLossPercent)
+    
     while orderTP['status'] != 'filled' and orderSL['status'] != 'filled':
         if orderTP['status'] == 'filled':
             closeOrder = orderTP
