@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="static/styles.css">
     <title>RESUMEN</title>
+    <script src="https://unpkg.com/papaparse@5.3.1/papaparse.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@5.0.0/dist/lightweight-charts.standalone.production.js"></script>
+
 </head>
 <body>
 
@@ -40,8 +43,9 @@
             <tr><th>Ganancia/perdida final</th><th>Mayor dropdown</th><th>Total de operaciones</th><th>Tasa de acierto</th><th>Ratio riesgo/rendimiento</th><th>Factor de ganancia</th></tr>
             <tr><td id="profitLoss"></td><td id="maxDrawdown"></td><td id="totalOperations"></td><td id="winRate"></td><td id="riskRewardRatio"></td><td id="profitFactor"></td></tr>
         </table>
-        <canvas id="chart"></canvas>
+        <div id="chart"></div>
     </div>
 </body>
 <script src="main.js"></script>
+<script src="chart.js"></script>
 </html>

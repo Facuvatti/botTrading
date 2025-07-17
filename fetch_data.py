@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 #import coinmarketcap as cmc
 import wbdata
 from datetime import datetime,timezone
+import os
 alphavantage_api = "VXX7JZAQDBD4GG0N"
 logg_format()
 def binance(apikey="zYDWPJzOj0jVT2a1OQdRlxSc6Y8Z60vbpw9lmz1tpU32U5wGnNXCtdHrkxV9gLIw",secret="asJ0B0hqMdI9JEdXqBmz804lN40KNx8dLBcueiKoFos25IBSeQvm3o4i4tLDvbDO"):
@@ -20,20 +21,25 @@ def binance(apikey="zYDWPJzOj0jVT2a1OQdRlxSc6Y8Z60vbpw9lmz1tpU32U5wGnNXCtdHrkxV9
         })  # Crea una instancia del exchange Binance
         exchange.set_sandbox_mode(True)
         return exchange
-def ohlcv(exchange:ccxt.binance,timeframe:str, candle_limit:int=None):  # Función para cargar datos y generar el gráfico de trading
+def ohlcv(exchange:ccxt.binance,timeframe:str, candle_limit:int=None, path="static/ohlcv_data.csv",new=False):  # Función para cargar datos y generar el gráfico de trading
     try:  
-        ohlcv_data = exchange.fetch_ohlcv('BTC/USDT', timeframe, limit=candle_limit)  # Obtiene datos OHLCV para BTC/USDT
-        if ohlcv_data == None or len(ohlcv_data) == 0:  # Verifica si se obtuvieron datos
-            logging.info("Error: No se obtuvieron datos de Binance.")  # Imprime error si no hay datos
-            return None
-        logging.info(f"Datos obtenidos: {len(ohlcv_data)} velas")  # Imprime el número de velas obtenidas
-        ohlcv_df = pd.DataFrame(ohlcv_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])  # Convierte los datos a un DataFrame
-        ohlcv_df['timestamp'] = pd.to_datetime(ohlcv_df['timestamp'], unit='ms')  # Convierte la columna timestamp a formato datetime
-        ohlcv_df.to_csv("data_bases/ohlcv_data.csv")
-        return ohlcv_df
+        if os.path.isfile(path):
+            ohlcv_df = pd.read_csv(path)
+            if candle_limit == len(ohlcv_df):
+                pass
+            else:
+                os.remove(path)
+        if not os.path.isfile(path) or new:
+            ohlcv_data = exchange.fetch_ohlcv('BTC/USDT', timeframe, limit=candle_limit)  # Obtiene datos OHLCV para BTC/USDT
+            if ohlcv_data == None or len(ohlcv_data) == 0:  # Verifica si se obtuvieron datos
+                logging.error("Error: No se obtuvieron datos de Binance.")  # Imprime error si no hay datos
+            logging.info(f"Datos obtenidos: {len(ohlcv_data)} velas")  # Imprime el número de velas obtenidas
+            ohlcv_df = pd.DataFrame(ohlcv_data, columns=['time', 'Open', 'High', 'Low', 'Close', 'Volume'])  # Convierte los datos a un DataFrame
+            ohlcv_df['timestamp'] = pd.to_datetime(ohlcv_df['timestamp'], unit='ms')  # Convierte la columna timestamp a formato datetime
+            ohlcv_df.to_csv(path,index=False)
     except Exception as e:
         logging.info(f"Error al obtener datos de Binance: \n {e}")  # Imprime mensaje de error si falla la obtención de datos
-        return None
+
 def OrderBook(exchange:ccxt.binance, symbol="BTCUSDT",limit:int=None):
     try:
             order_book = exchange.publicGetDepth({'symbol': f"{symbol}",'limit': limit})
@@ -43,8 +49,8 @@ def OrderBook(exchange:ccxt.binance, symbol="BTCUSDT",limit:int=None):
             bids = pd.DataFrame(bids, columns=["price", "quantity"])
             asks = pd.DataFrame(asks, columns=["price", "quantity"])
             logging.info(f"Bids: \n{bids} \nAsks: \n{asks} \n")
-            bids.to_csv("data_bases/bids.csv", index=False)
-            asks.to_csv("data_bases/asks.csv", index=False)
+            bids.to_csv("static/bids.csv", index=False)
+            asks.to_csv("static/asks.csv", index=False)
             return bids,asks
     except Exception as e:
         logging.info(f"Error al obtener el order book: {e}")
@@ -128,11 +134,11 @@ class EconomicCalendar:
 
         # Hacer el POST
         response = requests.post(url, data=data, headers=headers)
-        # Procesar el HTML que viene en el JSON
-        html = response.json()['data']
+        # Procesar el HTML que viene en el csv
+        html = response.csv()['data']
         logging.info(f"HTML obtenido")
         table = EconomicCalendar.extraer_eventos_con_8_columnas(html)
-        table.to_csv("data_bases/economic_calendar.csv")
+        table.to_csv("static/economic_calendar.csv")
         logging.info(f"Se han guardado los datos en el archivo economic_calendar.csv, correctamente")
         return table
 
@@ -140,14 +146,14 @@ def economic_indexs (interval:str="Q",country="USA",date=2010, indicators={"SL.E
     date = datetime(int(date), 1, 1)
     # Obtener datos
     indicators = wbdata.get_dataframe(indicators=indicators, country=country, date=(date, datetime.today()), freq=interval, source=2) #interval: Y (year), M (month), Q (quarter (cuatrimestre))
-    indicators.to_csv("data_bases/economic_indexs.csv")
+    indicators.to_csv("static/economic_indexs.csv")
     logging.info(f"Se han guardado los datos en el archivo economic_indexs.csv, correctamente")
     return indicators
 def marketcap(periods: int = max, filename: str = "marketcap.csv",interval : str = "daily") -> pd.DataFrame:
     """
     Obtiene datos históricos de capitalización de mercado de BTC desde CoinGecko.
     :param days: Número de días hacia atrás (ej: 30, 90, 180, 365, 'max')
-    :param filename: Nombre del archivo CSV a guardar
+    :param filename: Nombre del archivo csv a guardar
     :return: DataFrame con columnas timestamp, market_cap_usd, price_usd
     """
     url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
@@ -160,7 +166,7 @@ def marketcap(periods: int = max, filename: str = "marketcap.csv",interval : str
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
-        data = response.json()
+        data = response.csv()
 
         market_caps = data["market_caps"]
         prices = data["prices"]
@@ -192,15 +198,15 @@ def news(topics:list=["blokchain","technology","economy_macro"]):
         url = f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topic={topic}&sort=earliest&apikey={alphavantage_api}' 
         # Parametros opcionales: sort=EARLIEST, RELEVANCE, LATEST. tickers=IBM,MSFT. time_from & time_to = YYYYMMDDTHHMM
         r = requests.get(url)
-        data = r.json() # Son diccionarios
+        data = r.csv() # Son diccionarios
         info.append(data)
     info = pd.DataFrame(info)
-    info.to_csv("data_bases/news.csv")
+    info.to_csv("static/news.csv")
     logging.info(f"Se han guardado los datos en el archivo news.csv, correctamente")
     return info
 def feelings(url:str="https://api.alternative.me/fng/?limit=0"): # Todavia no funciona
     r = requests.get(url)
-    r = r.json()["data"]
+    r = r.csv()["data"]
     rows = []
     for row in r:
         ts = int(row["timestamp"])
@@ -222,7 +228,6 @@ def feelings(url:str="https://api.alternative.me/fng/?limit=0"): # Todavia no fu
             "Clasificación": emotion
         })
     data = pd.DataFrame(rows)
-    data.to_csv("data_bases/feelings.csv")
+    data.to_csv("static/feelings.csv")
     logging.info(f"Se han guardado los datos en el archivo feelings.csv, correctamente")
     return data
-economic_indexs()

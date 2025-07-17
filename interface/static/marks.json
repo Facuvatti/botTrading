@@ -1,0 +1,30 @@
+[
+  {
+    "time": 0,
+    "position": "belowBar",
+    "color": "orange",
+    "shape": "arrowDown",
+    "text": "Entry Short"
+  },
+  {
+    "time": 0,
+    "position": "aboveBar",
+    "color": "red",
+    "shape": "arrowUp",
+    "text": "Exit (Loss)"
+  },
+  {
+    "time": 0,
+    "position": "belowBar",
+    "color": "orange",
+    "shape": "arrowDown",
+    "text": "Entry Short"
+  },
+  {
+    "time": 0,
+    "position": "aboveBar",
+    "color": "green",
+    "shape": "arrowUp",
+    "text": "Exit (Profit)"
+  }
+]

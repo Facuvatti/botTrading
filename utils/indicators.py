@@ -32,7 +32,7 @@ def boundary_signals(close_price = pd.Series, lower_bound = pd.Series, upper_bou
 class SignalGenerator:
     """Genera señales basadas en scores de indicadores"""
     
-    def __init__(self, ohlcv, selected_indicators, data_folder="data_bases"):
+    def __init__(self, ohlcv, selected_indicators, data_folder="static"):
         self.ohlcv = ohlcv
         self.data_folder = data_folder
         calculated_indicators = self.calculate_indicators(self.ohlcv, selected_indicators)
