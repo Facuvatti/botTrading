@@ -1,7 +1,7 @@
 import ccxt
 import logging
 import pandas as pd
-from utils.others import logg_format
+from utils import logg_format
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -11,7 +11,7 @@ from datetime import datetime,timezone
 import os
 alphavantage_api = "VXX7JZAQDBD4GG0N"
 logg_format()
-def binance(apikey="zYDWPJzOj0jVT2a1OQdRlxSc6Y8Z60vbpw9lmz1tpU32U5wGnNXCtdHrkxV9gLIw",secret="asJ0B0hqMdI9JEdXqBmz804lN40KNx8dLBcueiKoFos25IBSeQvm3o4i4tLDvbDO"):
+def binance(apikey=os.environ.get("BINANCE_API_KEY"),secret=os.environ.get("BINANCE_SECRET_KEY")):
         logging.info("Obteniendo datos de Binance")  # Imprime mensaje indicando que se están obteniendo datos
         exchange = ccxt.binance({
                                 "apiKey": f"{apikey}",
@@ -21,7 +21,7 @@ def binance(apikey="zYDWPJzOj0jVT2a1OQdRlxSc6Y8Z60vbpw9lmz1tpU32U5wGnNXCtdHrkxV9
         })  # Crea una instancia del exchange Binance
         exchange.set_sandbox_mode(True)
         return exchange
-def ohlcv(exchange:ccxt.binance,timeframe:str, candle_limit:int=None, path="static/ohlcv_data.csv",new=False):  # Función para cargar datos y generar el gráfico de trading
+def ohlcv(exchange:ccxt.binance,timeframe:str, candle_limit:int=None, path="interface/static/ohlcv_data.csv",new=False):  # Función para cargar datos y generar el gráfico de trading
     try:  
         if os.path.isfile(path):
             ohlcv_df = pd.read_csv(path)
@@ -35,7 +35,7 @@ def ohlcv(exchange:ccxt.binance,timeframe:str, candle_limit:int=None, path="stat
                 logging.error("Error: No se obtuvieron datos de Binance.")  # Imprime error si no hay datos
             logging.info(f"Datos obtenidos: {len(ohlcv_data)} velas")  # Imprime el número de velas obtenidas
             ohlcv_df = pd.DataFrame(ohlcv_data, columns=['time', 'Open', 'High', 'Low', 'Close', 'Volume'])  # Convierte los datos a un DataFrame
-            ohlcv_df['timestamp'] = pd.to_datetime(ohlcv_df['timestamp'], unit='ms')  # Convierte la columna timestamp a formato datetime
+            ohlcv_df['timestamp'] = pd.to_datetime(ohlcv_df['time'], unit='ms')  # Convierte la columna timestamp a formato datetime
             ohlcv_df.to_csv(path,index=False)
     except Exception as e:
         logging.info(f"Error al obtener datos de Binance: \n {e}")  # Imprime mensaje de error si falla la obtención de datos
@@ -49,8 +49,8 @@ def OrderBook(exchange:ccxt.binance, symbol="BTCUSDT",limit:int=None):
             bids = pd.DataFrame(bids, columns=["price", "quantity"])
             asks = pd.DataFrame(asks, columns=["price", "quantity"])
             logging.info(f"Bids: \n{bids} \nAsks: \n{asks} \n")
-            bids.to_csv("static/bids.csv", index=False)
-            asks.to_csv("static/asks.csv", index=False)
+            bids.to_csv("interface/static/bids.csv", index=False)
+            asks.to_csv("interface/static/asks.csv", index=False)
             return bids,asks
     except Exception as e:
         logging.info(f"Error al obtener el order book: {e}")
@@ -138,7 +138,7 @@ class EconomicCalendar:
         html = response.csv()['data']
         logging.info(f"HTML obtenido")
         table = EconomicCalendar.extraer_eventos_con_8_columnas(html)
-        table.to_csv("static/economic_calendar.csv")
+        table.to_csv("interface/static/economic_calendar.csv")
         logging.info(f"Se han guardado los datos en el archivo economic_calendar.csv, correctamente")
         return table
 
@@ -146,7 +146,7 @@ def economic_indexs (interval:str="Q",country="USA",date=2010, indicators={"SL.E
     date = datetime(int(date), 1, 1)
     # Obtener datos
     indicators = wbdata.get_dataframe(indicators=indicators, country=country, date=(date, datetime.today()), freq=interval, source=2) #interval: Y (year), M (month), Q (quarter (cuatrimestre))
-    indicators.to_csv("static/economic_indexs.csv")
+    indicators.to_csv("interface/static/economic_indexs.csv")
     logging.info(f"Se han guardado los datos en el archivo economic_indexs.csv, correctamente")
     return indicators
 def marketcap(periods: int = max, filename: str = "marketcap.csv",interval : str = "daily") -> pd.DataFrame:
@@ -201,7 +201,7 @@ def news(topics:list=["blokchain","technology","economy_macro"]):
         data = r.csv() # Son diccionarios
         info.append(data)
     info = pd.DataFrame(info)
-    info.to_csv("static/news.csv")
+    info.to_csv("interface/static/news.csv")
     logging.info(f"Se han guardado los datos en el archivo news.csv, correctamente")
     return info
 def feelings(url:str="https://api.alternative.me/fng/?limit=0"): # Todavia no funciona
@@ -228,6 +228,6 @@ def feelings(url:str="https://api.alternative.me/fng/?limit=0"): # Todavia no fu
             "Clasificación": emotion
         })
     data = pd.DataFrame(rows)
-    data.to_csv("static/feelings.csv")
+    data.to_csv("interface/static/feelings.csv")
     logging.info(f"Se han guardado los datos en el archivo feelings.csv, correctamente")
     return data
